@@ -1,6 +1,9 @@
 package com.acs.clemson.ordering.graph;
 
+import com.google.common.collect.BiMap;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
 
 /**
  *
@@ -9,7 +12,7 @@ import java.util.Comparator;
 public class Graph{
     private final int SIZE;
     private final EdgeList[] nodes;
-    private final float[] volumes;
+    private final double[] volumes;
     private final double[] weightedSum;
     private final double[] weightedCoarseSum;
     private final int[] nodeDegrees;
@@ -17,14 +20,16 @@ public class Graph{
     private int edge_count=0;
     private final boolean[] coarse;
     private final EdgeList[] coarse_neighbors;
+    private final int[] prev_id;
+    private int level=0;
     public Graph(int SIZE){
         this.SIZE =SIZE;
         nodes = new EdgeList[SIZE];
         coarse_neighbors = new EdgeList[SIZE];
         
-        volumes = new float[SIZE];
+        volumes = new double[SIZE];
         coarse = new boolean[SIZE];
-        
+        prev_id =new int[SIZE];
         //initialize data
         weightedSum = new double[SIZE];
         weightedCoarseSum = new double[SIZE];
@@ -35,10 +40,41 @@ public class Graph{
             nodes[i]=new EdgeList();
             coarse_neighbors[i] = new EdgeList();
             volumes[i]=1;
+            prev_id[i]=-1;
         }
     }
+
+    public Graph(Graph fineg, List<HashMap<Integer, Float> > gData, BiMap<Integer,Integer> idMap, int numNodes) {
+        this(numNodes);
+        BiMap<Integer,Integer> idInv = idMap.inverse(); //id -> prevId
+        for(int i=0;i<gData.size();i++){
+            for(Integer j: gData.get(i).keySet()){
+                this.addEdge(i, j, gData.get(i).get(j));
+            }
+            
+            prev_id[i] = idInv.get(i);
+            volumes[i] = fineg.volume(prev_id[i]);
+        }
+        //compute new volume
+        for(int previd=0;previd<fineg.size();previd++){//loop through the older graph
+            if(!fineg.isC(previd)){//fine nodes only
+                for(Edge e:fineg.cAdj(previd)){
+                    double vol = (e.getPij() * fineg.volume(previd));
+                    int i = idMap.get(e.getEndpoint(previd)); //prev neigbor id -> id
+                    volumes[i] = volumes[i] + vol;
+                }
+            }
+		
+	}
+        
+        level=fineg.getLevel()+1;
+    }
+
+    public int getLevel() {
+        return level;
+    }
     
-    public void addEdge(int u, int v, double w){
+    public final void addEdge(int u, int v, double w){
         //graph is undirected
         //In order to traverse edges in order such that u < v. We store edge u,v such that u<v
         Edge e=null;
@@ -125,7 +161,7 @@ public class Graph{
         return coarse_neighbors[u].getAt(idx);
     }
     
-    public float volume(int u){
+    public double volume(int u){
         return volumes[u];
     }
     
@@ -166,6 +202,14 @@ public class Graph{
                 }
             }
         }
+    }
+    
+    public void print(){
+        double total=0;
+        for(int i=0;i<volumes.length;i++){
+            total+=volumes[i];
+        }
+        System.out.printf("Level: %d #nodes: %d #edges: %d Total Volume: %.1f\n",level,SIZE,edge_count,total);
     }
 
     @Override

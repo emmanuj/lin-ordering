@@ -13,7 +13,6 @@ public class CoarseningUtil {
 
     private static final int MU = 2;
     private static final float Q = 0.5f;
-    private static final int MINIMUM = 10;
 
     private CoarseningUtil() {
     }
@@ -62,17 +61,17 @@ public class CoarseningUtil {
         }
 
         //Top up the number of seeds to ensure we get the minimum
-        if (seeds.size() < MINIMUM) {
-            int i = fineNodes.size() - 1;
-            while (!g.isC(i) && i >= 0) {
-                seeds.add(i);
-                g.setCoarse(i, true);
-                if (seeds.size() == MINIMUM) {
-                    break;
-                }
-                --i;
-            }
-        }
+//        if (seeds.size() < Constants.MIN_NODES) {
+//            int i = fineNodes.size() - 1;
+//            while (!g.isC(i) && i >= 0) {
+//                seeds.add(i);
+//                g.setCoarse(i, true);
+//                if (seeds.size() == Constants.MIN_NODES) {
+//                    break;
+//                }
+//                --i;
+//            }
+//        }
         return seeds;
     }
 

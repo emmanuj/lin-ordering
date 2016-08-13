@@ -1,13 +1,11 @@
 
-import com.acs.clemson.ordering.algo.CoarseningUtil;
-import com.acs.clemson.ordering.graph.Edge;
+import com.acs.clemson.ordering.algo.AmgCoarsener;
+import com.acs.clemson.ordering.algo.TwoSumSolver;
 import com.acs.clemson.ordering.graph.Graph;
-import com.acs.clemson.ordering.util.GraphUtil;
 import com.acs.clemson.ordering.util.StringParser;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.stream.Stream;
 
 /**
@@ -18,11 +16,11 @@ public class Main {
 
     public static void main(String[] args) {
 
-        Graph g = new Graph(3997962);//3997962
+        Graph g = new Graph(62);//3997962
 
         //read file into stream, try-with-resources
         System.out.println("Reading graph ...");
-        String fileName = "/Users/emmanuj/test_graphs/test_graphs/livejournal.txt";
+        String fileName = "/Users/emmanuj/test_graphs/test_graphs/gd95c.edges";
         try (Stream<String> stream = Files.lines(Paths.get(fileName))) {
             stream.forEach((String line)
                     -> {
@@ -36,25 +34,23 @@ public class Main {
             System.out.println(e.getMessage());
         }
         System.out.println("Done reading graph | " + g);
-        //System.out.println("Coarsening graph...");
         
         
-        //ArrayList<Integer> seeds = CoarseningUtil.selectSeeds(g);
-       // System.out.println("# Cnodes: "+ seeds.size());
+        Manager mgr = new Manager(AmgCoarsener.getInstance(), TwoSumSolver.getInstance());
+        mgr.ML(g);
         
-        //CoarseningUtil.computeAMGInterpolation(g, 2);
-        
-        GraphUtil.computeAlgebraicDist(g);
-        
-        for(int i=0;i<g.size();i++){
-            for(Edge e: g.adj(i)){
-                int v = e.getEndpoint(i);
-                if(i<v){
-                    System.out.println(e.getU()+" "+e.getV()+" "+e.getAlgebraicDist());
-                }
-            }
-        }
-        
-        //g.printGraph();
+//        //System.out.println("Coarsening graph...");
+//        
+//        
+//        ArrayList<Integer> seeds = CoarseningUtil.selectSeeds(g);
+//        System.out.println("# Cnodes: "+ seeds.size());
+//        
+//        System.out.println("Commputing interpolation");
+//        CoarseningUtil.computeAMGInterpolation(g, 2);
+//        
+//        //GraphUtil.computeAlgebraicDist(g);
+//        System.out.println("Building tripples..");
+//        GraphBuilder.buildByTriples(g, seeds).printGraph();
+//        System.out.println("Done");
     }
 }
