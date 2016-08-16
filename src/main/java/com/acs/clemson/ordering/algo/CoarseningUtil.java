@@ -60,18 +60,6 @@ public class CoarseningUtil {
             }
         }
 
-        //Top up the number of seeds to ensure we get the minimum
-//        if (seeds.size() < Constants.MIN_NODES) {
-//            int i = fineNodes.size() - 1;
-//            while (!g.isC(i) && i >= 0) {
-//                seeds.add(i);
-//                g.setCoarse(i, true);
-//                if (seeds.size() == Constants.MIN_NODES) {
-//                    break;
-//                }
-//                --i;
-//            }
-//        }
         return seeds;
     }
 

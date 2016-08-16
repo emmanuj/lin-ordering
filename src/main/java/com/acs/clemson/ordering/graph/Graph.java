@@ -1,6 +1,7 @@
 package com.acs.clemson.ordering.graph;
 
 import com.google.common.collect.BiMap;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -22,6 +23,9 @@ public class Graph{
     private final EdgeList[] coarse_neighbors;
     private final int[] prev_id;
     private int level=0;
+    private List<Integer> soln;
+    private double xiVec[];
+    
     public Graph(int SIZE){
         this.SIZE =SIZE;
         nodes = new EdgeList[SIZE];
@@ -190,6 +194,39 @@ public class Graph{
     
     public void setVolume(int node, float v){
         volumes[node] = v;
+    }
+
+    public List<Integer> getSoln() {
+        return soln;
+    }
+
+    public void setSoln(List<Integer> soln) {
+        this.soln = soln;
+    }
+
+    public double[] getXiVec() {
+        return xiVec;
+    }
+
+    public void setXiVec(double[] xiVec) {
+        this.xiVec = xiVec;
+    }
+    
+    public double getXi(int u){
+        return xiVec[u];
+    }
+    public void setXi(int u, double xi){
+        xiVec[u] = xi;
+    }
+    public int getNodeAtSoln(int pos){
+        return soln.get(pos);
+    }
+    public int prevId(int node){
+        return prev_id[node];
+    }
+
+    public int[] getPrev_id() {
+        return prev_id;
     }
     
     public void printGraph(){

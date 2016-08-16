@@ -8,3 +8,6 @@ dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
 nbactions.xml
+/src/main/java/CppGraph.java
+/src/main/java/HashList.java
+/src/main/java/Playground.java

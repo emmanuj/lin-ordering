@@ -45,14 +45,20 @@ public class GraphBuilder {
                 for (Edge cEdge : g.cAdj(u)) {//get coarse neighbors of the fine edges
                     int nb = cEdge.getEndpoint(u);
                     if (nb != v) {
-                        addToTable(coarseEdges, idMap.get(v), idMap.get(nb), cEdge.getPij() * e.getWeight());
+                        double w = cEdge.getPij() * e.getWeight();
+                        if(w !=0){
+                            addToTable(coarseEdges, idMap.get(v), idMap.get(nb), w);
+                        }
                     }
                 }
             } else if (g.isC(u) && !g.isC(v)) {//C-F
                 for (Edge cEdge : g.cAdj(v)) {//get coarse neighbors of the fine edges
                     int nb = cEdge.getEndpoint(v);
                     if (nb != u) {
-                        addToTable(coarseEdges, idMap.get(u), idMap.get(nb), cEdge.getPij() * e.getWeight());
+                        double w = cEdge.getPij() * e.getWeight();
+                        if(w !=0){
+                            addToTable(coarseEdges, idMap.get(u), idMap.get(nb), w);
+                        }
                     }
                 }
             } else {//F-F
@@ -61,7 +67,10 @@ public class GraphBuilder {
                     for (Edge cEdgeV : g.cAdj(v)) {
                         int vNb = cEdgeV.getEndpoint(v);
                         if (uNb != vNb) {
-                            addToTable(coarseEdges, idMap.get(uNb), idMap.get(vNb), cEdgeU.getPij() * e.getWeight() * cEdgeV.getPij());
+                            double w = cEdgeU.getPij() * e.getWeight() * cEdgeV.getPij();
+                            if(w !=0){
+                                addToTable(coarseEdges, idMap.get(uNb), idMap.get(vNb), w);
+                            }
                         }
                     }
                 }
