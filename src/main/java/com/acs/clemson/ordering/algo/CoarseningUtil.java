@@ -2,6 +2,7 @@ package com.acs.clemson.ordering.algo;
 
 import com.acs.clemson.ordering.graph.Edge;
 import com.acs.clemson.ordering.graph.Graph;
+import com.acs.clemson.ordering.util.Constants;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -18,6 +19,7 @@ public class CoarseningUtil {
     }
 
     public static ArrayList<Integer> selectSeeds(Graph g) {
+       
         ArrayList<Integer> seeds = new ArrayList((int) 0.5 * g.size() + 10);
         ArrayList<Integer> fineNodes = new ArrayList((int) 0.5 * g.size() + 10);
         final ArrayList<Double> fvols = new ArrayList(Collections.nCopies(g.size(), 1.0));
@@ -33,9 +35,9 @@ public class CoarseningUtil {
             fvols.set(u, fv);
             total += fv;
         }
-
-        final double thresh = MU * (total / g.size());
-        for (int u = 0; u < fvols.size(); u++) {
+        
+        final double thresh = MU * (total / g.size()*1.0);
+        for (int u = 0; u < g.size(); u++) {
             if (fvols.get(u) > thresh) {
                 seeds.add(u);
                 g.setCoarse(u, true);
@@ -44,22 +46,35 @@ public class CoarseningUtil {
             }
         }
 
-        //TODO: WE SKIP RECOMPUTING FV FOR NOW
         //sort by future volume
         fineNodes.sort((Integer o1, Integer o2) -> {
-            return fvols.get(o1).compareTo(fvols.get(o2));
+            int compVal = fvols.get(o2).compareTo(fvols.get(o1)); //using o2.compareTo(o1) for reverse order
+            if(compVal == 0){
+                return o1.compareTo(o2);
+            }
+            return compVal; //
         });
-
+                
         //make nodes seeds
-        for (int i = fineNodes.size() - 1; i >= 0; i--) {
+        for (int i = 0; i < fineNodes.size(); i++) {
             int u = fineNodes.get(i);
-            final double T = g.weightedCoarseDegree(u) / g.weightedDegree(u);
-            if (T <= Q) {
+            final double T = g.weightedCoarseDegree(u) / g.weightedDegree(u); //TODO: Possible divide by zero error here
+            if (T <= Q) { 
                 seeds.add(u);
                 g.setCoarse(u, true);
             }
         }
-
+        
+        if(seeds.size()<Constants.MIN_NODES){
+            int k = seeds.size();
+            for (int i = 0; i < fineNodes.size(); i++) {
+                if(!g.isC(fineNodes.get(i)) && k < Constants.MIN_NODES){
+                    seeds.add(fineNodes.get(i));
+                    g.setCoarse(fineNodes.get(i), true);
+                    k++;
+                }
+            }
+        }
         return seeds;
     }
 
@@ -75,19 +90,14 @@ public class CoarseningUtil {
                 * The value 0 should be used instead when u is coarse or both u and v are coarse
                 */
                 
-//                System.out.println("Before filtering. [c neighbors="+g.weightedCoarseDegree(u)+"]: ");
                 for (Edge e : g.cAdj(u)) {
                     //TODO: replace calls with g.setPij(...) and g.getPij(..)
                     e.setPij((e.getWeight() / g.weightedCoarseDegree(u)));
-//                    System.out.print(e.getPij()+" ");
                 }
-//                System.out.println();
                 
                 //Sort By Pij (min to max)
                 g.sortCoarseAdj(u, (Edge e1, Edge e2) -> {
                     int res = Double.compare(e1.getPij(), e2.getPij());
-                    
-                    
                     return res;
                 });
                 
@@ -105,15 +115,12 @@ public class CoarseningUtil {
                         k++;
                     }
                     k =0;
-//                    System.out.println("After filtering: ");
                     for(Edge e: g.cAdj(u)){
                         if(k>=lim){
                             e.setPij(e.getPij()/total);
                         }
                         k++;
-//                        System.out.print(e.getPij()+" ");
                     }
-                    //System.out.println("\n");
                 }
             }
         }

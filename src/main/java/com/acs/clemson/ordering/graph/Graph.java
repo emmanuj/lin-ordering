@@ -12,16 +12,16 @@ import java.util.List;
  */
 public class Graph{
     private final int SIZE;
-    private final EdgeList[] nodes;
-    private final double[] volumes;
-    private final double[] weightedSum;
-    private final double[] weightedCoarseSum;
-    private final int[] nodeDegrees;
-    private final int[] c_nodeDegrees;
+    private EdgeList[] nodes;
+    private double[] volumes;
+    private double[] weightedSum;
+    private double[] weightedCoarseSum;
+    private int[] nodeDegrees;
+    private int[] c_nodeDegrees;
     private int edge_count=0;
-    private final boolean[] coarse;
-    private final EdgeList[] coarse_neighbors;
-    private final int[] prev_id;
+    private boolean[] coarse;
+    private EdgeList[] coarse_neighbors;
+    private int[] prev_id;
     private int level=0;
     private List<Integer> soln;
     private double xiVec[];
@@ -39,6 +39,7 @@ public class Graph{
         weightedCoarseSum = new double[SIZE];
         nodeDegrees= new int[SIZE];
         c_nodeDegrees = new int[SIZE];
+        xiVec = new double[SIZE];
         
         for(int i=0;i<SIZE;i++){
             nodes[i]=new EdgeList();
@@ -203,6 +204,10 @@ public class Graph{
     public void setSoln(List<Integer> soln) {
         this.soln = soln;
     }
+    
+    public void updateSoln(int node, int idx){
+        soln.set(idx, node);
+    }
 
     public double[] getXiVec() {
         return xiVec;
@@ -247,6 +252,24 @@ public class Graph{
             total+=volumes[i];
         }
         System.out.printf("Level: %d #nodes: %d #edges: %d Total Volume: %.1f\n",level,SIZE,edge_count,total);
+    }
+    
+    public void dispose(){
+        //let the GC do it's work
+        nodes =null;
+        volumes=null;
+        weightedSum=null;
+        weightedCoarseSum = null;
+        nodeDegrees =null;
+        c_nodeDegrees = null;
+        edge_count =0;
+        coarse =null;
+        coarse_neighbors=null;
+        prev_id =null;
+        level =0;
+        soln = null;
+        xiVec = null;
+                
     }
 
     @Override

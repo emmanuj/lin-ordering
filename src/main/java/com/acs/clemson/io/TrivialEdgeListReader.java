@@ -28,8 +28,10 @@ public class TrivialEdgeListReader {
         try (BufferedReader br = Files.newBufferedReader(Paths.get(filename))) {
             String firstline = br.readLine();
             String []graphinfo = firstline.split(delimeter);
-            if(firstline.contains("Nodes")){
+            if(firstline.toLowerCase().contains("nodes")){
                 g = new Graph(Integer.parseInt(graphinfo[2].trim()));
+            }else if(firstline.contains("p")){
+                g = new Graph(Integer.parseInt(graphinfo[2]));
             }else if(firstline.contains("ghct")){
                 g = new Graph(Integer.parseInt(graphinfo[1]));
             }
@@ -41,10 +43,19 @@ public class TrivialEdgeListReader {
                     String d[] = line.split(" "); //Find potential way to make this better for CPU and speed.
                     switch (firstnode) {
                         case 0:
-                            g.addEdge(StringParser.toInt(d[0]), StringParser.toInt(d[1]), 1);
+                            if(line.startsWith("e")){
+                                g.addEdge(StringParser.toInt(d[1]), StringParser.toInt(d[2]), 1);
+                            }else{
+                                g.addEdge(StringParser.toInt(d[0]), StringParser.toInt(d[1]), 1);
+                            }
                             break;
                         case 1:
-                            g.addEdge(StringParser.toInt(d[0])-1, StringParser.toInt(d[1])-1, 1);
+                            if(line.startsWith("e")){
+                                g.addEdge(StringParser.toInt(d[1])-1, StringParser.toInt(d[2])-1, 1);
+                            }else{
+                                g.addEdge(StringParser.toInt(d[0])-1, StringParser.toInt(d[1])-1, 1);
+                            }
+                            
                             break;
                         default:
                             throw new UnsupportedOperationException("Node Ids must begin from 0 or 1");

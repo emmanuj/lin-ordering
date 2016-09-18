@@ -46,7 +46,7 @@ public class Main {
             TrivialEdgeListReader reader = new TrivialEdgeListReader(fileName, " ", fn);
             Graph g = reader.read();
             System.out.println("Done reading graph | " + g);
-
+            
             Manager mgr = new Manager(AmgCoarsener.getInstance(), TwoSumSolver.getInstance());
             mgr.ML(g);
             

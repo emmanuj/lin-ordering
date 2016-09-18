@@ -3,6 +3,7 @@ package com.acs.clemson.ordering.graph;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  *
@@ -17,16 +18,18 @@ public class EdgeList implements Iterable<Edge>{
     
     @Override
     public Iterator<Edge> iterator() {
-        Iterator<Edge> it = new IteratorImpl();
+        Iterator<Edge> it = new IteratorImpl(data, data.size());
         return it;
     }
 
-    private class IteratorImpl implements Iterator<Edge> {
-
-        public IteratorImpl() {
+    private static final class IteratorImpl implements Iterator<Edge> {
+        private final ArrayList<Edge> data;
+        private final int N;
+        public IteratorImpl(ArrayList<Edge> data, int N) {
+            this.data = data;
+            this.N = N;
         }
         private int currentIndex = 0;
-        private final int N = data.size();
         @Override
         public boolean hasNext() {
             
@@ -40,6 +43,7 @@ public class EdgeList implements Iterable<Edge>{
 
         @Override
         public Edge next() {
+            if(!this.hasNext()) throw new NoSuchElementException();
             return data.get(currentIndex++);
         }
 
