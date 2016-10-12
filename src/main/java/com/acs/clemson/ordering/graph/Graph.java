@@ -1,7 +1,6 @@
 package com.acs.clemson.ordering.graph;
 
 import com.google.common.collect.BiMap;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -247,11 +246,12 @@ public class Graph{
     }
     
     public void print(){
-        double total=0;
+        /*double total=0;
         for(int i=0;i<volumes.length;i++){
             total+=volumes[i];
-        }
-        System.out.printf("Level: %d #nodes: %d #edges: %d Total Volume: %.1f\n",level,SIZE,edge_count,total);
+        }*/
+        //System.out.printf("Level: %d #nodes: %d #edges: %d Total Volume: %.1f\n",level,SIZE,edge_count,total);
+        System.out.printf("Level: %d #nodes: %d #edges: %d\n",level,SIZE,edge_count);
     }
     
     public void dispose(){

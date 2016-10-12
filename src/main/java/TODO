@@ -1,0 +1,47 @@
+[TODAY]
+-- Profile code and eliminate performance bottlenecks
+-- Static analysis with Google tools
+-- Check how many times that there's no solution in window minimization
+
+[TOMORROW]
+
+-- Make code work well with zero degree nodes
+-- Write edge deletion code
+-- Include logging
+-- Verify that all benchmark graphs can be properly read
+-- Fix as many TODOs in the code as possible
+-- Document code with comments where necessary
+-- Functional Test
+
+TODO
+====
+
+-- Performance optimization
+-- Testing & Validation
+-- Static testing and analysis using Google tools
+
+-- Stable matching [Complete]
+-- Integrate with Alg. Distance [Complete]
+-- Algebraic distance [Complete]
+-- Node by node minimization [Complete]
+-- Integrate with stable matching[complete]
+-- Filter by Algebraic Distance [Complete]
+-- Permuting graph nodes[Complete]
+-- .graph reader [Complete]
+-- Get all options from command line working [Complete]
+
+
+Wishlist
+========
+
+-- Better and robust graph reader
+-- Edge Deletion [Skipped for now. Not sure how using algebraic distance for filtering might affect our results]
+
+
+Notes from meeting
+-- Take off filtering
+-- Verify how many singular matrices you see in window minimization
+
+
+
+

@@ -11,15 +11,11 @@ import java.util.Collections;
  * @author Emmanuel John
  */
 public class CoarseningUtil {
-
-    private static final int MU = 2;
-    private static final float Q = 0.5f;
-
     private CoarseningUtil() {
     }
 
     public static ArrayList<Integer> selectSeeds(Graph g) {
-       
+
         ArrayList<Integer> seeds = new ArrayList((int) 0.5 * g.size() + 10);
         ArrayList<Integer> fineNodes = new ArrayList((int) 0.5 * g.size() + 10);
         final ArrayList<Double> fvols = new ArrayList(Collections.nCopies(g.size(), 1.0));
@@ -36,7 +32,7 @@ public class CoarseningUtil {
             total += fv;
         }
         
-        final double thresh = MU * (total / g.size()*1.0);
+        final double thresh = Constants.MU * (total / g.size()*1.0);
         for (int u = 0; u < g.size(); u++) {
             if (fvols.get(u) > thresh) {
                 seeds.add(u);
@@ -58,8 +54,12 @@ public class CoarseningUtil {
         //make nodes seeds
         for (int i = 0; i < fineNodes.size(); i++) {
             int u = fineNodes.get(i);
-            final double T = g.weightedCoarseDegree(u) / g.weightedDegree(u); //TODO: Possible divide by zero error here
-            if (T <= Q) { 
+            if(g.degree(u) == 0){
+                System.out.println("Contains zero degree node: "+u+" Level: "+ g.getLevel());
+                continue; //avoid divide by zero below
+            }
+            final double T = g.weightedCoarseDegree(u) / g.weightedDegree(u);
+            if (T <= Constants.Q) {
                 seeds.add(u);
                 g.setCoarse(u, true);
             }
@@ -75,6 +75,7 @@ public class CoarseningUtil {
                 }
             }
         }
+        
         return seeds;
     }
 
@@ -95,13 +96,13 @@ public class CoarseningUtil {
                     e.setPij((e.getWeight() / g.weightedCoarseDegree(u)));
                 }
                 
+                //now filter by interpolation (io)
                 //Sort By Pij (min to max)
                 g.sortCoarseAdj(u, (Edge e1, Edge e2) -> {
                     int res = Double.compare(e1.getPij(), e2.getPij());
                     return res;
                 });
                 
-                //now filter by interpolation (io)
                 if(io < g.cDegree(u)){
                     int k = 0;
                     int lim = g.cDegree(u) - io;
@@ -110,7 +111,7 @@ public class CoarseningUtil {
                         if(k < lim){
                             e.setPij(0); //edge should be filtered
                         }else{
-                            total+=e.getPij(); //edge should be filterd but we get the some for normalizing
+                            total+=e.getPij(); //edge should be filtered but we get the sum for normalizing
                         }
                         k++;
                     }
@@ -122,8 +123,8 @@ public class CoarseningUtil {
                         k++;
                     }
                 }
+                
             }
         }
-
     }
 }

@@ -45,12 +45,16 @@ public class TwoSumSolver implements Solver {
         coarse.dispose();
         
         mCost = getCost(fine);
-        
         doNodeMinimization(fine);
+        if(fine.getLevel() ==0) System.out.printf("Initialization: %.5e\n", mCost);
+        
         doRelaxation(fine, Relaxation.COMPATIBLE);
         doNodeMinimization(fine);
+        if(fine.getLevel() ==0) System.out.printf("Compatible: %.5e\n", mCost);
+        
         doRelaxation(fine, Relaxation.GS);
         doNodeMinimization(fine);
+        if(fine.getLevel() ==0) System.out.printf("Gauss-Seidel: %.5e\n", mCost);
         
         for (int i = 0; i < Constants.K3; i++) {
             double c = refine(fine);
@@ -59,7 +63,9 @@ public class TwoSumSolver implements Solver {
             }
             mCost = c;
         }
-        System.out.printf("Level: %d Cost: %.5e\n", fine.getLevel(), getCost(fine));
+        if(fine.getLevel() ==0) System.out.printf("Refinement: %.5e\n", mCost);
+        
+        //System.out.printf("Level: %d Cost: %.5e\n", fine.getLevel(), getCost(fine));
     }
     private void doNodeMinimization(Graph g){
         //System.out.println("Cost before minimization: "+ mCost);
@@ -124,9 +130,10 @@ public class TwoSumSolver implements Solver {
         computeXi(g, soln, xiVec);
         g.setXiVec(xiVec);
         g.setSoln(soln);
+        System.out.println("Level count: "+ (g.getLevel()+1));
         //g.printGraph();
-        System.out.printf("In Coarsest level. Cost: %.5e", getCost(g));
-        System.out.println(" | Ordering: " + g.getSoln());
+        //System.out.printf("In Coarsest level. Cost: %.5e", getCost(g));
+        //System.out.println(" | Ordering: " + g.getSoln());
     }
 
     private void initialize(Graph f, List<Integer> soln, double xiVec[], int prev_id[]) {
@@ -159,15 +166,21 @@ public class TwoSumSolver implements Solver {
                 sum += e.getWeight();
                 sum_prod += yi[e.getEndpoint(u)] * e.getWeight();
             }
+            
 
-            yi[u] = sum_prod / sum; //TODO: Remember to test what happens with zero degree nodes here.
+            //avoid divide by zero as a result of zero degree fine nodes
+            if (f.degree(u) != 0) {
+                yi[u] = sum_prod / sum;
+            } else {
+                yi[u] = -1; //all the zero degree nodes go at the beginning
+            }
             placed[u] = true;
 
             begin++;
             p++;
 
             if ((p % 10 == 0) && begin < nodes.size()) {
-                Collections.sort(nodes.subList(begin, nodes.size()), comp); //TODO: Test this
+                nodes.subList(begin, nodes.size()).sort(comp);
             }
         }
 
@@ -189,7 +202,7 @@ public class TwoSumSolver implements Solver {
             }
 
             //avoid divide by zero as a result of zero degree fine nodes
-            if (f.degree(u) != 0) {//TODO: review this
+            if (f.degree(u) != 0) {
                 yi[u] = sum_prod / sum;
             } else {
                 yi[u] = -1; //all the zero degree nodes go at the beginning
@@ -431,7 +444,7 @@ public class TwoSumSolver implements Solver {
             nodes.add(i);
         }
 
-        nodes.sort((Integer o1, Integer o2) -> Double.compare(yi[o1], yi[o2]));
+        nodes.sort((Integer o1, Integer o2) -> Double.compare(yi[o1], yi[o2]));//Ascending order
         for (int i = 0; i < nodes.size(); i++) {
             double xi = 0.5 * f.volume(nodes.get(i));
             if (i > 0) {
@@ -443,7 +456,7 @@ public class TwoSumSolver implements Solver {
     }
 
     private void pump(Graph f, double[] yi, double xivec[], List<Integer> soln) {
-        soln.sort((Integer o1, Integer o2) -> Double.compare(yi[o1], yi[o2]));
+        soln.sort((Integer o1, Integer o2) -> Double.compare(yi[o1], yi[o2]));//ascending order
         for (int i = 0; i < soln.size(); i++) {
             double xi = 0.5 * f.volume(soln.get(i));
             if (i > 0) {
@@ -477,7 +490,7 @@ public class TwoSumSolver implements Solver {
             tmp.add(g.getNodeAtSoln(i));
         }
 
-        tmp.sort((Integer i, Integer j) -> {
+        tmp.sort((Integer i, Integer j) -> { //sorts in ascending order
             final NodeBundle n = nodes.get(i);
             final NodeBundle m = nodes.get(j);
             final double d1 = n.xi + soln.getEntry(n.pos - wStart);
@@ -590,7 +603,7 @@ public class TwoSumSolver implements Solver {
             }
             rel_w2 /= f.weightedDegree(v);
 
-            return Double.compare(rel_w2, rel_w1);
+            return Double.compare(rel_w2, rel_w1);//Sorts in descending order
         }
     }
 

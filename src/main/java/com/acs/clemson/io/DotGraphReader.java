@@ -15,30 +15,26 @@ import java.util.Collections;
  *
  * @author emmanuj
  */
-public class TrivialEdgeListReader implements GraphReader {
+public class DotGraphReader implements GraphReader {
 
     private final String filename;
     private final String delimeter;
     private final int firstnode;
     private static BiMap idMap; //maps OriginalID -> new ID
-    public TrivialEdgeListReader(String file, String delimeter, int firstnode) {
+    public DotGraphReader(String file, String delimeter, int firstnode) {
         this.filename = file;
         this.delimeter = delimeter;
         this.firstnode = firstnode;
+        if(firstnode == 0) throw new UnsupportedOperationException("First node has to be either 0 or 1");
     }
+
     @Override
     public Graph read(boolean shuffleNodes) {
         Graph g=null;
         try (BufferedReader br = Files.newBufferedReader(Paths.get(filename))) {
-            String firstline = br.readLine().trim();
+            String firstline = br.readLine();
             String []graphinfo = firstline.split(delimeter);
-            if(firstline.toLowerCase().contains("nodes")){
-                g = new Graph(Integer.parseInt(graphinfo[2].trim()));
-            }else if(firstline.contains("p")){
-                g = new Graph(Integer.parseInt(graphinfo[2]));
-            }else if(firstline.contains("ghct")){
-                g = new Graph(Integer.parseInt(graphinfo[1]));
-            }
+            g = new Graph(Integer.parseInt(graphinfo[0].trim()));
             
             if(g ==null ) throw new UnsupportedOperationException("Number of nodes not defined in the file");
             
@@ -56,29 +52,21 @@ public class TrivialEdgeListReader implements GraphReader {
             }
             
             String line;
+            int u = 0;
             while((line = br.readLine()) !=null){
-                if(!line.contains("#")){
-                    String d[] = line.trim().split(" ");
-                    switch (firstnode) {
-                        case 0:
-                            if(line.startsWith("e")){
-                                g.addEdge(nodes.get(StringParser.toInt(d[1])), nodes.get(StringParser.toInt(d[2])), 1);
-                            }else{
-                                g.addEdge(nodes.get(StringParser.toInt(d[0])), nodes.get(StringParser.toInt(d[1])), 1);
-                            }
-                            break;
-                        case 1:
-                            if(line.startsWith("e")){
-                                g.addEdge(nodes.get(StringParser.toInt(d[1])-1), nodes.get(StringParser.toInt(d[2])-1), 1);
-                            }else{
-                                g.addEdge(nodes.get(StringParser.toInt(d[0])-1), nodes.get(StringParser.toInt(d[1])-1), 1);
-                            }
-                            
-                            break;
-                        default:
-                            throw new UnsupportedOperationException("Node Ids must begin from 0 or 1");
+                if(line.trim().isEmpty()) throw new UnsupportedOperationException("Blank line in graph file");
+                
+                String d[] = line.trim().split(" ");
+                for(String n: d){
+                    int v = StringParser.toInt(n);
+                    if(firstnode == 1){
+                        v-=1;
+                    }
+                    if(u < v){
+                        g.addEdge(nodes.get(u), nodes.get(v), 1);
                     }
                 }
+                u++;
             }
             
         } catch (IOException e) {
