@@ -9,8 +9,9 @@ import java.util.NoSuchElementException;
  *
  * @author Emmanuel John
  */
-public class EdgeList implements Iterable<Edge>{
+public class EdgeList implements java.io.Serializable, Iterable<Edge>{
     private final ArrayList<Edge> data= new ArrayList();
+    private static final long serialVersionUID = 5257488434893175524L;
     
     public void add(Edge e){
         data.add(e);

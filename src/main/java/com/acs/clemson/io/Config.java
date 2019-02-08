@@ -35,7 +35,7 @@ public class Config {
         }
     }
     public static void printUsage(){
-        formatter.printHelp( "run.sh", options );
+        formatter.printHelp( "java -jar lin-ordering-1.0.jar", options );
     }
     
     
@@ -50,6 +50,12 @@ public class Config {
         options.addOption(Option.builder("e")
                 .longOpt("min-nodes")
                 .desc("The minimum number of nodes before coarsening is returned")
+                .hasArg()
+                .required(false)
+                .build());
+        options.addOption(Option.builder()
+                .longOpt("gname")
+                .desc("The name of the graph")
                 .hasArg()
                 .required(false)
                 .build());
@@ -71,6 +77,14 @@ public class Config {
                 .argName("Capacity")
                 .longOpt("cap")
                 .desc("Specify the maximum number of matches for each coarse node during stable matching")
+                .hasArg()
+                .required(false)
+                .build());
+        
+        options.addOption(Option.builder()
+                .argName("Capacity")
+                .longOpt("cap2")
+                .desc("Similar to --cap but usually used with --combine-stable")
                 .hasArg()
                 .required(false)
                 .build());
@@ -136,8 +150,35 @@ public class Config {
                 .hasArg(false)
                 .required(false)
                 .build());
+        options.addOption(Option.builder()
+                .longOpt("combine")
+                .desc("Combine amg with stable matching during coarsening")
+                .hasArg(false)
+                .required(false)
+                .build());
         
-        //see https://commons.apache.org/proper/commons-cli/usage.html for more
+        options.addOption(Option.builder()
+                .longOpt("combine-stable")
+                .desc("Combine Stable with stable matching using alternate capacity")
+                .hasArg(false)
+                .required(false)
+                .build());
+        
+        options.addOption(Option.builder()
+                .longOpt("beta")
+                .desc("The percentage change from the old graph for combining stable match with AMG")
+                .hasArg()
+                .required(false)
+                .build());
+        
+        options.addOption(Option.builder()
+                .longOpt("eta")
+                .desc("The filtering threshold. The default is 0.01")
+                .hasArg()
+                .required(false)
+                .build());
+        
+        //see https://commons.apache.org/proper/commons-cli/usage.html for help
 
     }
 }

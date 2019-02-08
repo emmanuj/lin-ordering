@@ -9,4 +9,5 @@ public interface Solver {
     public void uncoarsen(Graph fine, Graph coarse);
     public void solve(Graph fine);
     public double getCost();
+    public double getCost(Graph g);
 }

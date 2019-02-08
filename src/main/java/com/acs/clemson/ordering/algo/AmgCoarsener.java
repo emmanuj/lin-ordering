@@ -26,16 +26,22 @@ public class AmgCoarsener implements Coarsener {
     public Graph coarsen(Graph g) {
         if(g == null) throw new UnsupportedOperationException("Graph cannot be null");
         ArrayList<Integer> seeds = CoarseningUtil.selectSeeds(g);
-        GraphUtil.computeAlgebraicDist(g);
-        
+        GraphUtil.computeAlgebraicDistPar(g);
         if(Constants.DO_STABLE){
-            //System.out.println("Using stable with capacity= "+Constants.CAP);
-            GraphUtil.doStableMatching(g, seeds, Constants.CAP);
+            int newSize = GraphUtil.doStableMatching(g, seeds, Constants.CAP, Constants.COMBINE);
+            double diff = (double)(g.size() - newSize)/g.size();
+            if(diff < Constants.BETA ){ // graph is no longer reducing so we combine methods
+                if(Constants.COMBINE){
+                    CoarseningUtil.computeAMGInterpolation(g, Constants.IO);
+                }else if( Constants.COMBINE_STABLE ){
+                    GraphUtil.doStableMatching(g, seeds, Constants.CAP2, Constants.COMBINE_STABLE);
+                }
+            }
+            
         }else{
-            //System.out.println("Using amg");
             CoarseningUtil.computeAMGInterpolation(g, Constants.IO);
         }
-        return GraphBuilder.buildByTriples(g, seeds);
+        Graph cg = GraphBuilder.buildByTriplesFast(g, seeds);
+        return cg;
     }
-    
 }

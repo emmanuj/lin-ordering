@@ -23,7 +23,8 @@ import org.apache.commons.math3.linear.RealVector;
 public class TwoSumSolver implements Solver {
 
     private static TwoSumSolver solver;
-    private double mCost=0;
+    private double mCost = 0;
+
     private enum Relaxation {
         GS,
         COMPATIBLE
@@ -41,21 +42,37 @@ public class TwoSumSolver implements Solver {
 
     @Override
     public void uncoarsen(Graph fine, Graph coarse) {
+        //System.out.println("Uncoarsening, Level: "+fine.getLevel());
+
+        //long  start = System.currentTimeMillis();
         initialize(fine, coarse.getSoln(), coarse.getXiVec(), coarse.getPrev_id());
-        coarse.dispose();
-        
+        //long end = System.currentTimeMillis();
+        //System.out.println("Initialization time: "+ (end - start)+"ms");
+
         mCost = getCost(fine);
+        // start = System.currentTimeMillis();
         doNodeMinimization(fine);
-        if(fine.getLevel() ==0) System.out.printf("Initialization: %.5e\n", mCost);
-        
+        // end = System.currentTimeMillis();
+        // System.out.println("Node minimize time: "+ (end - start)+"ms");
+        if(fine.getLevel() == 0) System.out.printf("Initialization: %.5e\n", mCost );
+
+        // start = System.currentTimeMillis();
         doRelaxation(fine, Relaxation.COMPATIBLE);
+        // end = System.currentTimeMillis();
+        //System.out.println("Compatible time: "+ (end - start)+"ms");
+
         doNodeMinimization(fine);
-        if(fine.getLevel() ==0) System.out.printf("Compatible: %.5e\n", mCost);
-        
+        if(fine.getLevel() == 0) System.out.printf("Compatible: %.5e\n", mCost);
+
+        // start = System.currentTimeMillis();
         doRelaxation(fine, Relaxation.GS);
+//        end = System.currentTimeMillis();
+//        System.out.println("GS time: "+ (end - start)+"ms");
+
         doNodeMinimization(fine);
-        if(fine.getLevel() ==0) System.out.printf("Gauss-Seidel: %.5e\n", mCost);
-        
+        if(fine.getLevel() == 0) System.out.printf("Gauss-Seidel: %.5e\n", mCost );
+
+//        start = System.currentTimeMillis();
         for (int i = 0; i < Constants.K3; i++) {
             double c = refine(fine);
             if (c == mCost) {//no change
@@ -63,23 +80,25 @@ public class TwoSumSolver implements Solver {
             }
             mCost = c;
         }
-        if(fine.getLevel() ==0) System.out.printf("Refinement: %.5e\n", mCost);
-        
-        //System.out.printf("Level: %d Cost: %.5e\n", fine.getLevel(), getCost(fine));
+//        end = System.currentTimeMillis();
+//        System.out.println("Refine time: "+ (end - start)+"ms");
+
+        if(fine.getLevel() == 0) System.out.printf("Refinement: %.5e\n", mCost);
+        //if(fine.getLevel() == 0) System.out.printf("Level: %d Cost: %.5e\n", fine.getLevel(), getCost(fine));
     }
-    private void doNodeMinimization(Graph g){
-        //System.out.println("Cost before minimization: "+ mCost);
-        for(int i =0; i < Constants.K4; i++){
-            double c = minimizeNodes(g,Constants.K5);
-            if(c == mCost ){//no change
+
+    private void doNodeMinimization(Graph g) {
+        for (int i = 0; i < Constants.K4; i++) {
+            double c = minimizeNodes(g, Constants.K5);
+            if (c == mCost) {//no change
                 break;
             }
             mCost = c;
         }
-        //System.out.println("Cost after minimization: "+ mCost);
     }
+
     private void doRelaxation(Graph fine, Relaxation type) throws IllegalArgumentException {
-        double cost = mCost;
+        //double cost = mCost;
         for (int i = 0; i < Constants.K1; i++) {
             List<Integer> tmpSoln = new ArrayList(fine.getSoln());
             double xivec[] = new double[fine.size()];
@@ -95,8 +114,8 @@ public class TwoSumSolver implements Solver {
                     throw new IllegalArgumentException("Specified type not Supported");
             }
             double c = getCost(fine, tmpSoln, xivec);
-            if (c < cost) {//If the cost is better, update the graph
-                cost = c;
+            if (c < mCost) {//If the cost is better, update the graph
+                mCost = c;
                 fine.setSoln(tmpSoln);
                 fine.setXiVec(xivec);
             } else {
@@ -130,10 +149,7 @@ public class TwoSumSolver implements Solver {
         computeXi(g, soln, xiVec);
         g.setXiVec(xiVec);
         g.setSoln(soln);
-        System.out.println("Level count: "+ (g.getLevel()+1));
-        //g.printGraph();
-        //System.out.printf("In Coarsest level. Cost: %.5e", getCost(g));
-        //System.out.println(" | Ordering: " + g.getSoln());
+        System.out.println("Level count: " + (g.getLevel() + 1));
     }
 
     private void initialize(Graph f, List<Integer> soln, double xiVec[], int prev_id[]) {
@@ -166,10 +182,9 @@ public class TwoSumSolver implements Solver {
                 sum += e.getWeight();
                 sum_prod += yi[e.getEndpoint(u)] * e.getWeight();
             }
-            
 
             //avoid divide by zero as a result of zero degree fine nodes
-            if (f.degree(u) != 0) {
+            if (sum != 0) {
                 yi[u] = sum_prod / sum;
             } else {
                 yi[u] = -1; //all the zero degree nodes go at the beginning
@@ -287,11 +302,11 @@ public class TwoSumSolver implements Solver {
                     g.setXi(node, nodes.get(node).xi);
                     g.updateSoln(node, nodes.get(node).pos);
                 }
-                
-                curMinCost = (curMinCost - QCostOld)+QCostNew;
+
+                curMinCost = (curMinCost - QCostOld) + QCostNew;
             }
         }
-        
+
         return curMinCost;
     }
 
@@ -301,7 +316,7 @@ public class TwoSumSolver implements Solver {
         for (int i = 0; i < g.size(); i++) {
             int leftBound = Math.max(0, i - k);
             int rightBound = Math.min(g.size() - 1, i + 1);
-            
+
             minc = minimizeNode(g, i, leftBound, rightBound, minc);
         }
         return minc;
@@ -559,6 +574,7 @@ public class TwoSumSolver implements Solver {
         return xSum;
     }
 
+    @Override
     public double getCost(Graph g) {
         double xSum = 0;
         for (int i = 0; i < g.size(); i++) {

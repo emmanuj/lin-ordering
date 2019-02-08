@@ -6,13 +6,15 @@ import com.acs.clemson.ordering.util.Constants;
  *
  * @author Emmanuel John
  */
-public class Edge {
-    private boolean deleted=false;
+public class Edge implements java.io.Serializable{
+
+    private static final long serialVersionUID = -8600793750830336782L;
+    private transient boolean deleted=false;
     private int u;
     private int v;
     private double weight;
-    private double pij;
-    private double algebraicDist = (1/Constants.EPSILON);
+    private transient double pij;
+    private transient double algebraicDist = (1/Constants.EPSILON);
     
     public Edge(int u, int v, double weight) {
         this.u = u;
@@ -81,6 +83,6 @@ public class Edge {
 
     @Override
     public String toString() {
-        return "Edge[u:"+u+", v:"+v+"]";
+        return "Edge[u:"+u+", v:"+v+", "+pij+" "+algebraicDist+"]";
     }
 }

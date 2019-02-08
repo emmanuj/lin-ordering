@@ -6,17 +6,22 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
  * @author emmanuj
  */
 public class GraphUtil {
-    private static final Random RANDOM = new Random(); //Not thread safe. Consider using ThreadLocalRandom.current().nextInt() in multithread use.
     public static void computeAlgebraicDist(Graph g) {
         for (int r = 0; r < Constants.R; r++) {
             double x_vec[] = new double[g.size()];
@@ -59,7 +64,6 @@ public class GraphUtil {
                     int v = e.getEndpoint(u);
                     if (u < v) {
                         double ad = 1 / ((Math.abs(x_vec[u] - x_vec[v])) + Constants.EPSILON);
-                        //System.out.println(ad+" "+((Math.abs(x_vec[u] - x_vec[v])) + Constants.EPSILON));
                         if (ad < e.getAlgebraicDist()) {
                             e.setAlgebraicDist(ad);
                         }
@@ -68,15 +72,81 @@ public class GraphUtil {
             }
         }
     }
+    public static void computeAlgebraicDistPar(Graph g) {
+        ExecutorService es = Executors.newFixedThreadPool(Constants.R);
+        //ExecutorService es = Executors.newSingleThreadExecutor();
+        
+        for (int r = 0; r < Constants.R; r++) {
+            es.execute(() -> {
+                doAlgDist(g);
+            });
+        }
+        es.shutdown();
+        try {
+            es.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(GraphUtil.class.getName()).log(Level.SEVERE, "Interupted before end of execution", ex);
+        }
+    }
     
-    public static void doStableMatching(Graph g, ArrayList<Integer> seeds, int cap){
+    public static void doAlgDist(Graph g){
+        double x_vec[] = new double[g.size()];
+        //generate the random numbers
+        for (int j = 0; j < x_vec.length; j++) {
+            x_vec[j] = randomInRange(-0.5, 0.5);
+        }
+
+        for (int k = 0; k < Constants.K; k++) {
+            double c_vec[] = new double[g.size()];
+            for (int u = 0; u < g.size(); u++) {
+                double prod_sum = 0;
+                double sum = 0;
+                for (Edge e : g.adj(u)) {
+                    int v = e.getEndpoint(u);
+                    sum = e.getWeight();
+                    prod_sum += e.getWeight() * x_vec[v];
+                }
+
+                c_vec[u] = Constants.ALFA * x_vec[u];
+                if (sum != 0) {//avoid divide by 0.
+                    c_vec[u] += (1 - Constants.ALFA) * (prod_sum / sum);
+                }
+            }
+            x_vec = c_vec;
+        }
+
+        //rescale 
+        double min = minElement(x_vec);
+        double max = maxElement(x_vec);
+        for (int i = 0; i < x_vec.length; i++) {
+            double a = x_vec[i] - min;
+            double b = max - x_vec[i];
+            x_vec[i] = (0.5 * (a - b)) / (a + b);
+        }
+
+        //compute the algebraic distance
+        for (int u = 0; u < g.size(); u++) {
+            for (Edge e : g.adj(u)) {
+                int v = e.getEndpoint(u);
+                if (u < v) {
+                    double ad = 1 / ((Math.abs(x_vec[u] - x_vec[v])) + Constants.EPSILON);
+                    synchronized(g){
+                        if (ad < e.getAlgebraicDist()) {
+                            e.setAlgebraicDist(ad);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    public static int doStableMatching(Graph g, ArrayList<Integer> seeds, int cap, boolean isCombined){
         
         //renumber fine and coarse nodes from 0 to n-1
         int fCount = 0;
         int cCount = 0;
         final BiMap<Integer, Integer> cNodeIdx = HashBiMap.create(g.size());
         final BiMap<Integer, Integer> fNodeIdx = HashBiMap.create(g.size());
-        //final 
+        
         for(int i=0;i<g.size();i++){
             //Create new ids for fine node and coarse nodes
             if(g.isC(i)){
@@ -95,7 +165,7 @@ public class GraphUtil {
             for(Edge e: g.adj(i)){
                 sumalg+=e.getAlgebraicDist();
             }
-                
+               
             if(g.isC(i)){
                 cPref.add(new ArrayList());
                 
@@ -128,15 +198,34 @@ public class GraphUtil {
         }
         int [] matches = matchNodes(cPref, fWeights, cap); // returns the matches of fine nodes. 
         //Note that a fine node can only be matched with one seed node while seed nodes can have multiple fine nodes
-        
+        BiMap<Integer, Integer> fNodeIdInv = fNodeIdx.inverse();
+        BiMap<Integer, Integer> cNodeIdInv = cNodeIdx.inverse();
+        int unmatchedFineCount = 0;
         for(int i =0;i<matches.length; i++){
-            int nodeid = fNodeIdx.inverse().get(i);
+            if(matches[i] == -1){// No match found
+                unmatchedFineCount++;
+            }
+        }
+        
+        int newSize = unmatchedFineCount+seeds.size();
+        
+        double diff = (double)(g.size() - newSize)/g.size();
+        if(!isCombined || (diff >= Constants.BETA)){
+            computeStableMatchInterpolation(g, matches, fNodeIdInv, cNodeIdInv, seeds);
+        }
+        
+        return newSize;
+    }
+    private static void computeStableMatchInterpolation(Graph g, int [] matches, BiMap<Integer, Integer> fNodeIdInv,
+            BiMap<Integer, Integer> cNodeIdInv, ArrayList<Integer> seeds){
+        for(int i =0;i<matches.length; i++){
+            int nodeid = fNodeIdInv.get(i);
             if(matches[i] == -1){// No match found
                 //Make into seed node
                 seeds.add(nodeid);
                 g.setCoarse(nodeid, true);
             }else{//match exists
-                int coarseMatchId = cNodeIdx.inverse().get(matches[i]);
+                int coarseMatchId = cNodeIdInv.get(matches[i]);
                 for(Edge e: g.adj(nodeid)){
                     if(e.getEndpoint(nodeid) == coarseMatchId){ //fine nodes are matched to only one coarse node by default.
                         e.setPij(1.0); //TODO: change to g.setPij
@@ -145,7 +234,6 @@ public class GraphUtil {
                 }
             }
         }
-        
     }
     
     private static int[] matchNodes(List<List<Integer>>cnodes, List< Map<Integer, Double> >fWeights, int capacity){
@@ -153,6 +241,7 @@ public class GraphUtil {
         final int[] matching = new int[fWeights.size()]; // matching of fine -> coarse, -1 by default
         final int[] p_counter = new int[cnodes.size()]; //store proposal count for c nodes
         final int[] caps = new int[cnodes.size()]; //store capacity of each coarse node
+        //Map<Integer, Integer> cnodePos
         
         for(int i=0;i<cnodes.size();i++){
             unmatched.add(i);
@@ -170,7 +259,7 @@ public class GraphUtil {
         while(!unmatched.isEmpty()){
             int a = unmatched.getFirst();
             int num_nbs = cnodes.get(a).size();
-            if(num_nbs == 0 || p_counter[a] >= num_nbs || caps[a] ==0 ){
+            if(num_nbs == 0 || p_counter[a] == num_nbs || caps[a] ==0 ){
                 unmatched.removeFirst();
             }else{
                 int w = cnodes.get(a).get(p_counter[a]);
@@ -187,6 +276,7 @@ public class GraphUtil {
                     caps[cur_match]++;// this guy just lost his partner. He's available
                     
                     matching[w] = a; //w gets matched to a
+                    caps[a]--;
                 } //else b rejects a
                 
                 //increment proposal counter
@@ -199,28 +289,16 @@ public class GraphUtil {
     }
 
     public static double minElement(double a[]) {
-        double min = a[0];
-        for (int i = 1; i < a.length; i++) {
-            if (a[i] < min) {
-                min = a[i];
-            }
-        }
-        return min;
+        return Arrays.stream(a).parallel().min().getAsDouble();
     }
 
     public static double maxElement(double a[]) {
-        double max = a[0];
-        for (int i = 1; i < a.length; i++) {
-            if (a[i] > max) {
-                max = a[i];
-            }
-        }
-        return max;
+        return Arrays.stream(a).parallel().max().getAsDouble();
     }
 
     public static double randomInRange(double min, double max) {
-        double range = max - min;
-        double scaled = RANDOM.nextDouble() * range;
+        double range = max - min; //
+        double scaled = ThreadLocalRandom.current().nextDouble() * range;
         double shifted = scaled + min;
         return shifted; // == (rand.nextDouble() * (max-min)) + min;
     }

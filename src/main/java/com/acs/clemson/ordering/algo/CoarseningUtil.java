@@ -55,7 +55,7 @@ public class CoarseningUtil {
         for (int i = 0; i < fineNodes.size(); i++) {
             int u = fineNodes.get(i);
             if(g.degree(u) == 0){
-                System.out.println("Contains zero degree node: "+u+" Level: "+ g.getLevel());
+                //System.out.println("Contains zero degree node: "+u+" Level: "+ g.getLevel() +" IsC: "+g.isC(u));
                 continue; //avoid divide by zero below
             }
             final double T = g.weightedCoarseDegree(u) / g.weightedDegree(u);
@@ -82,10 +82,11 @@ public class CoarseningUtil {
     public static void computeAMGInterpolation(Graph g, int io) {
         //io: interpolation order.
         //interpolation of -1 means the connections are not filtered by io
-
+        
         //Compute Pij
         for (int u=0;u<g.size();u++) {
             if(!g.isC(u)){
+                
                 /*
                 * Note: Although Pij for this edge u-v when set is equal to edge Pij(v,u)
                 * The value 0 should be used instead when u is coarse or both u and v are coarse
@@ -97,10 +98,12 @@ public class CoarseningUtil {
                 }
                 
                 //now filter by interpolation (io)
-                //Sort By Pij (min to max)
+                //Sort By Pij and Algebraic distance (min to max). Zero Pij are sorted towards the beginning.
                 g.sortCoarseAdj(u, (Edge e1, Edge e2) -> {
-                    int res = Double.compare(e1.getPij(), e2.getPij());
-                    return res;
+                    if(e1.getPij() == 0 || e2.getPij() == 0){
+                        return Double.compare(e1.getPij(), e2.getPij());
+                    }
+                    return Double.compare(e1.getAlgebraicDist(), e2.getAlgebraicDist());
                 });
                 
                 if(io < g.cDegree(u)){
@@ -111,7 +114,7 @@ public class CoarseningUtil {
                         if(k < lim){
                             e.setPij(0); //edge should be filtered
                         }else{
-                            total+=e.getPij(); //edge should be filtered but we get the sum for normalizing
+                            total+=e.getPij(); //edge should not be filtered but we get the sum for normalizing
                         }
                         k++;
                     }
@@ -123,7 +126,6 @@ public class CoarseningUtil {
                         k++;
                     }
                 }
-                
             }
         }
     }

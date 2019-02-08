@@ -4,26 +4,31 @@ import org.apache.commons.cli.CommandLine;
 
 /**
  *
- * @author emmanuj
+ * @author Emmanuel John
+ * 
  */
 public class Constants {
     public static final double EPSILON=0.00000001;
-    public static int MIN_NODES = 9;
+    public static double ETA = 0.01;
+    public static int MIN_NODES = 8;
     public static int IO = 10;
     public static int WIN_SIZE = 20; //#nodes in window
-    public static int K1 = 20;//compatibles
-    public static int K2 = 20;//GSs
-    public static int K3 = 10;//refinements
-    public static int K4 = 20;//node minimization
+    public static int K1 = 15;//compatibles
+    public static int K2 = 15;//GSs
+    public static int K3 = 15;//refinements
+    public static int K4 = 10;//node minimization
     public static int K5 = 5;// number steps to left and then to right for node minimization
     public static int MU = 2;
-    public static int CAP = 2; //Capacity for stable matching
+    public static int CAP = -1; //Capacity for stable matching
+    public static int CAP2 = -1; //Capacity for stable matching when being combined with other stable matching capacities
     public static float Q = 0.5f;
-    public static int R = 10;
-    public static int K = 30;
+    public static int R = 1;
+    public static int K = 20;
     public static float ALFA = 0.5f;
     public static boolean DO_STABLE = false; //used for stable matching.
-    
+    public static boolean COMBINE=false;
+    public static double BETA=0.05;
+    public static boolean COMBINE_STABLE=false;
     public static void initialize(CommandLine cmd){
         
         //boolean options
@@ -31,10 +36,23 @@ public class Constants {
             DO_STABLE = true;
         }
         
+        if(cmd.hasOption("combine")){
+            COMBINE = true;
+        }
+        
+        if( cmd.hasOption("combine-stable")){
+            COMBINE_STABLE = true;
+        }
+        
         //options with arguments
         if(cmd.hasOption("cap")){
             CAP = Integer.parseInt(cmd.getOptionValue("cap"));
         }
+        
+        if(cmd.hasOption("cap2")){
+            CAP2 = Integer.parseInt(cmd.getOptionValue("cap2"));
+        }
+        
         if(cmd.hasOption("e")){
             MIN_NODES = Integer.parseInt(cmd.getOptionValue("e"));
         }
@@ -64,6 +82,14 @@ public class Constants {
         }
         if(cmd.hasOption("num-steps")){
             K5 = Integer.parseInt(cmd.getOptionValue("num-node"));
+        }
+        
+        if(cmd.hasOption("beta")){
+            BETA = Double.parseDouble(cmd.getOptionValue("beta"));
+        }
+        
+        if(cmd.hasOption("eta")){
+            ETA = Double.parseDouble(cmd.getOptionValue("eta"));
         }
         
     }

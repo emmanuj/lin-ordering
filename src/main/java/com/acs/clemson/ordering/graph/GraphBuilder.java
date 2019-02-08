@@ -1,19 +1,17 @@
 package com.acs.clemson.ordering.graph;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Table;
+import com.acs.clemson.ordering.util.Constants;
+import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
+import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
 
 /**
  *
  * @author Emmanuel John
  */
 public class GraphBuilder {
-    public static Graph buildByTriples(Graph g, ArrayList<Integer> seeds) {
+     public static Graph buildByTriplesFast(Graph g, ArrayList<Integer> seeds) {
+        
         ArrayList<Edge> edges = new ArrayList(g.getEdgeCount());
         for (int i = 0; i < g.size(); i++) {
             for (Edge e : g.adj(i)) {
@@ -24,81 +22,84 @@ public class GraphBuilder {
             }
         }
         
-        BiMap<Integer, Integer> idMap = HashBiMap.create();
-        int id =0;
-        for(Integer seed:seeds){
-            idMap.put(seed, id++);
+        Int2DoubleMap[] coarseEdges = new Int2DoubleOpenHashMap[g.size()];
+        for(int i=0;i<seeds.size();i++){
+            coarseEdges[seeds.get(i)] = new Int2DoubleOpenHashMap();
         }
-        //Table<Long, Long, Double> coarseEdges = HashBasedTable.create(seeds.size(), seeds.size());
-        List< HashMap<Integer,Float>> coarseEdges = Collections.synchronizedList(new ArrayList(seeds.size()));
-        seeds.parallelStream().forEach((_item) -> {
-            coarseEdges.add(new HashMap());
-        });
+
+         //compute coarse weights
+         edges.forEach((e) -> {
+             int v = e.getV();
+             int u = e.getU();
+             if (g.isC(u) && g.isC(v)) {
+                 addToTable(coarseEdges, u, v, e.getWeight());
+             } else if (!g.isC(u) && g.isC(v)) { //F-C
+                 for (Edge cEdge : g.cAdj(u)) {//get coarse neighbors of the fine edges
+                     if(cEdge.getPij() == 0) continue;
+                     int nb = cEdge.getEndpoint(u);
+                     if (nb != v) {
+                         double w = cEdge.getPij() * e.getWeight();
+                         if(w !=0){
+                             addToTable(coarseEdges, v, nb, w);
+                         }
+                     }
+                 }
+             } else if (g.isC(u) && !g.isC(v)) {//C-F
+                 for (Edge cEdge : g.cAdj(v)) {//get coarse neighbors of the fine edges
+                     if(cEdge.getPij() == 0) continue;
+                     int nb = cEdge.getEndpoint(v);
+                     if (nb != u) {
+                         double w = cEdge.getPij() * e.getWeight();
+                         if(w !=0){
+                             addToTable(coarseEdges, u, nb, w);
+                         }
+                     }
+                 }
+             } else {//F-F
+                 for (Edge cEdgeU : g.cAdj(u)) {//get coarse neighbors of the fine edges
+                     if(cEdgeU.getPij() == 0) continue;
+                     int uNb = cEdgeU.getEndpoint(u);
+                     for (Edge cEdgeV : g.cAdj(v)) {
+                         if(cEdgeV.getPij() == 0) continue;
+                         int vNb = cEdgeV.getEndpoint(v);
+                         if (uNb != vNb) {
+                             double w = cEdgeU.getPij() * e.getWeight() * cEdgeV.getPij();
+                             if(w !=0){
+                                 addToTable(coarseEdges, uNb, vNb, w);
+                             }
+                         }
+                     }
+                 }
+             }
+         });
         
-        //compute coarse weights
-        for(Edge e:edges){
-            int v = e.getV();
-            int u = e.getU();
-            if (g.isC(u) && g.isC(v)) {
-                addToTable(coarseEdges, idMap.get(u), idMap.get(v), e.getWeight());
-            } else if (!g.isC(u) && g.isC(v)) { //F-C
-                for (Edge cEdge : g.cAdj(u)) {//get coarse neighbors of the fine edges
-                    int nb = cEdge.getEndpoint(u);
-                    if (nb != v) {
-                        double w = cEdge.getPij() * e.getWeight();
-                        if(w !=0){
-                            addToTable(coarseEdges, idMap.get(v), idMap.get(nb), w);
-                        }
-                    }
-                }
-            } else if (g.isC(u) && !g.isC(v)) {//C-F
-                for (Edge cEdge : g.cAdj(v)) {//get coarse neighbors of the fine edges
-                    int nb = cEdge.getEndpoint(v);
-                    if (nb != u) {
-                        double w = cEdge.getPij() * e.getWeight();
-                        if(w !=0){
-                            addToTable(coarseEdges, idMap.get(u), idMap.get(nb), w);
-                        }
-                    }
-                }
-            } else {//F-F
-                for (Edge cEdgeU : g.cAdj(u)) {//get coarse neighbors of the fine edges
-                    int uNb = cEdgeU.getEndpoint(u);
-                    for (Edge cEdgeV : g.cAdj(v)) {
-                        int vNb = cEdgeV.getEndpoint(v);
-                        if (uNb != vNb) {
-                            double w = cEdgeU.getPij() * e.getWeight() * cEdgeV.getPij();
-                            if(w !=0){
-                                addToTable(coarseEdges, idMap.get(uNb), idMap.get(vNb), w);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        edges = null;
-        return new Graph(g,coarseEdges,idMap,seeds.size());
+        Graph cg = new Graph(g,coarseEdges,seeds);
+        //System.out.println("Before: ");
+        //cg.print();
+        cg = cg.filterEdges(Constants.ETA * Math.pow(0.9, round(Math.log(cg.getLevel()+1), 5)));
+        //System.out.println("After: ");
+        //cg.print();
+        return cg;
     }
-
-    private static void addToTable(Table<Long, Long, Double> tbl, int r, int c, double val) {
-        long mn = Math.min(r, c);//the smaller of the two nodeIds
-        long mx = Math.min(r, c);//the largest of the two nodeId
-        if (tbl.contains(mn, mx)) {
-            tbl.put(mn, mx, tbl.get(mn, mx) + val);
-        } else {
-            tbl.put(mn, mx, val);
+    /**
+     * 
+     * @param x The number to round
+     * @param dp number of decimal places
+     * @return x rounded to the desired number of decimal places
+     */
+    public static double round(double x, int dp){
+        int i =1;
+        int c = dp;
+        while(c > 0){
+            i*=10;
+            c--;
         }
+        
+        return (double) Math.round(x * i) / i;
     }
-    
-    private static void addToTable(List<HashMap<Integer, Float>> tbl, int r, int c, double val) {
+    private static void addToTable(Int2DoubleMap[] tbl, int r, int c, double val) {
         int mn = Math.min(r, c);//the smaller of the two nodeIds
         int mx = Math.max(r, c);//the largest of the two nodeId
-        Float obj = tbl.get(mn).get(mx);
-        float w = (obj==null?0:obj) + (float)val;
-        tbl.get(mn).put(mx,w);
+        tbl[mn].put(mx, tbl[mn].get(mx)+val);
     }
-
-
-    
 }

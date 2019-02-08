@@ -1,15 +1,15 @@
 package com.acs.clemson.ordering.graph;
 
-import com.google.common.collect.BiMap;
+import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
+import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 
 /**
  *
  * @author Emmanuel John
  */
-public class Graph{
+public class Graph implements java.io.Serializable{
     private final int SIZE;
     private EdgeList[] nodes;
     private double[] volumes;
@@ -24,9 +24,11 @@ public class Graph{
     private int level=0;
     private List<Integer> soln;
     private double xiVec[];
-    
-    public Graph(int SIZE){
+    private String graphName;
+    private static final long serialVersionUID = 5067155957993140108L;
+    public Graph(int SIZE, String name){
         this.SIZE =SIZE;
+        this.graphName = name;
         nodes = new EdgeList[SIZE];
         coarse_neighbors = new EdgeList[SIZE];
         
@@ -46,36 +48,58 @@ public class Graph{
             volumes[i]=1;
             prev_id[i]=-1;
         }
+        soln = new ArrayList();
     }
 
-    public Graph(Graph fineg, List<HashMap<Integer, Float> > gData, BiMap<Integer,Integer> idMap, int numNodes) {
-        this(numNodes);
-        BiMap<Integer,Integer> idInv = idMap.inverse(); //id -> prevId
-        for(int i=0;i<gData.size();i++){
-            for(Integer j: gData.get(i).keySet()){
-                this.addEdge(i, j, gData.get(i).get(j));
-            }
-            
-            prev_id[i] = idInv.get(i);
-            volumes[i] = fineg.volume(prev_id[i]);
+    public Graph(Graph g, Int2DoubleMap[] gData, ArrayList<Integer> seeds) {
+        this(seeds.size(),g.getGraphName());
+        int[] new_id = new int[g.size()];
+        
+        for(int i=0;i<seeds.size();i++){
+            prev_id[i] = seeds.get(i);
+            volumes[i] = g.volume(prev_id[i]);
+            new_id[seeds.get(i)] = i;
         }
+        
+        seeds.forEach((id) -> {
+            gData[id].entrySet().forEach((nb) -> {
+                this.addEdge(new_id[id], new_id[nb.getKey()], nb.getValue());
+            });
+        });
+        
         //compute new volume
-        for(int previd=0;previd<fineg.size();previd++){//loop through the older graph
-            if(!fineg.isC(previd)){//fine nodes only
-                for(Edge e:fineg.cAdj(previd)){
-                    double vol = (e.getPij() * fineg.volume(previd));
-                    int i = idMap.get(e.getEndpoint(previd)); //prev neigbor id -> id
-                    volumes[i] = volumes[i] + vol;
+        for(int previd=0;previd<g.size();previd++){//loop through the older graph
+            if(!g.isC(previd)){//fine nodes only
+                for(Edge e:g.cAdj(previd)){
+                    double vol = (e.getPij() * g.volume(previd));
+                    int curId = new_id[e.getEndpoint(previd)]; //prev neigbor id -> id
+                    volumes[curId] = volumes[curId] + vol;
                 }
             }
 		
 	}
         
-        level=fineg.getLevel()+1;
+        level=g.getLevel()+1;
+    }
+    
+    public String getGraph_id() {
+        return graphName+"_"+level;
     }
 
+    public String getGraphName() {
+        return graphName;
+    }
+
+    public void setGraphName(String graphName) {
+        this.graphName = graphName;
+    }
+    
     public int getLevel() {
         return level;
+    }
+
+    public void setLevel(int level) {
+        this.level = level;
     }
     
     public final void addEdge(int u, int v, double w){
@@ -232,26 +256,66 @@ public class Graph{
     public int[] getPrev_id() {
         return prev_id;
     }
+
+    public int getEdge_count() {
+        return edge_count;
+    }
+
+    public void setEdge_count(int edge_count) {
+        this.edge_count = edge_count;
+    }
+
+    public void setVolumes(double[] volumes) {
+        this.volumes = volumes;
+    }
+
+    public void setPrev_id(int[] prev_id) {
+        this.prev_id = prev_id;
+    }
     
     public void printGraph(){
         System.out.printf("#nodes: %d #edges: %d \n",SIZE,edge_count);
         for(int i=0;i<SIZE;i++){
+            if(degree(i) == 0){
+               // System.out.println("Zero node: v:"+i);
+                //System.exit(0);
+            }
             for(Edge e: adj(i)){
                 int v = e.getEndpoint(i);
+                
                 if(i<v){
-                    System.out.println(e.getU()+" "+e.getV());
+                    System.out.println(e.getU()+" "+e.getV()+" "+e.getWeight() +" Vol: "+volumes[i]);
                 }
             }
         }
     }
-    
+    public Graph filterEdges(double thresh){
+        Graph g = new Graph(SIZE, graphName);
+        for(int u=0;u<SIZE;u++){
+            double Ki = thresh * this.weightedDegree(u);
+            for(Edge e: this.adj(u)){
+                int v = e.getEndpoint(u);
+                if(u < v){
+                    double Kj = thresh * this.weightedDegree(v);
+                    if(!(e.getWeight() < Ki && e.getWeight() < Kj)){
+                        g.addEdge(u, v, e.getWeight());
+                    }
+                }
+            }
+        }
+        g.setPrev_id(prev_id);
+        g.setLevel(this.level);
+        g.setVolumes(volumes);
+        
+        return g;
+    }
     public void print(){
-        /*double total=0;
+        double total=0;
         for(int i=0;i<volumes.length;i++){
             total+=volumes[i];
-        }*/
-        //System.out.printf("Level: %d #nodes: %d #edges: %d Total Volume: %.1f\n",level,SIZE,edge_count,total);
-        System.out.printf("Level: %d #nodes: %d #edges: %d\n",level,SIZE,edge_count);
+        }
+        System.out.printf("Level: %d #nodes: %d #edges: %d Total Volume: %.1f\n",level,SIZE,edge_count,total);
+        //System.out.printf("Level: %d #nodes: %d #edges: %d\n",level,SIZE,edge_count);
     }
     
     public void dispose(){

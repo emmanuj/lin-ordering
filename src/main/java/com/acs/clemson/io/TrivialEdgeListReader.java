@@ -21,10 +21,12 @@ public class TrivialEdgeListReader implements GraphReader {
     private final String delimeter;
     private final int firstnode;
     private static BiMap idMap; //maps OriginalID -> new ID
-    public TrivialEdgeListReader(String file, String delimeter, int firstnode) {
+    private final String gname;
+    public TrivialEdgeListReader(String file, String delimeter, int firstnode, String gname) {
         this.filename = file;
         this.delimeter = delimeter;
         this.firstnode = firstnode;
+        this.gname=gname;
     }
     @Override
     public Graph read(boolean shuffleNodes) {
@@ -33,11 +35,11 @@ public class TrivialEdgeListReader implements GraphReader {
             String firstline = br.readLine().trim();
             String []graphinfo = firstline.split(delimeter);
             if(firstline.toLowerCase().contains("nodes")){
-                g = new Graph(Integer.parseInt(graphinfo[2].trim()));
+                g = new Graph(Integer.parseInt(graphinfo[2].trim()),gname);
             }else if(firstline.contains("p")){
-                g = new Graph(Integer.parseInt(graphinfo[2]));
+                g = new Graph(Integer.parseInt(graphinfo[2]),gname);
             }else if(firstline.contains("ghct")){
-                g = new Graph(Integer.parseInt(graphinfo[1]));
+                g = new Graph(Integer.parseInt(graphinfo[1]),gname);
             }
             
             if(g ==null ) throw new UnsupportedOperationException("Number of nodes not defined in the file");

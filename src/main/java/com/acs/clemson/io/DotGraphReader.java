@@ -21,10 +21,12 @@ public class DotGraphReader implements GraphReader {
     private final String delimeter;
     private final int firstnode;
     private static BiMap idMap; //maps OriginalID -> new ID
-    public DotGraphReader(String file, String delimeter, int firstnode) {
+    private final String gname;
+    public DotGraphReader(String file, String delimeter, int firstnode, String gname) {
         this.filename = file;
         this.delimeter = delimeter;
         this.firstnode = firstnode;
+        this.gname = gname;
         if(firstnode == 0) throw new UnsupportedOperationException("First node has to be either 0 or 1");
     }
 
@@ -34,7 +36,7 @@ public class DotGraphReader implements GraphReader {
         try (BufferedReader br = Files.newBufferedReader(Paths.get(filename))) {
             String firstline = br.readLine();
             String []graphinfo = firstline.split(delimeter);
-            g = new Graph(Integer.parseInt(graphinfo[0].trim()));
+            g = new Graph(Integer.parseInt(graphinfo[0].trim()),gname);
             
             if(g ==null ) throw new UnsupportedOperationException("Number of nodes not defined in the file");
             
